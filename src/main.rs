@@ -65,6 +65,7 @@ pub struct TimeCounter {
 
 #[derive(PartialEq)]
 pub enum GameState {
+    TitleScreen,
     Running,
     Died,
 }
@@ -721,7 +722,7 @@ fn reset(
     }
 
     for enemy in enemies.iter() {
-        commands.get_entity(enemy).unwrap().despawn_recursive();
+        commands.entity(enemy).despawn_recursive();
     }
 
     as_que.queue = vec![];
