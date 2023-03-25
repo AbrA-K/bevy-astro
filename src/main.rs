@@ -68,6 +68,7 @@ pub enum GameState {
     TitleScreen,
     Running,
     Died,
+    Won,
 }
 
 #[derive(Resource)]
@@ -453,7 +454,7 @@ fn handle_input(
     asset_server: Res<AssetServer>,
     mut board_size: ResMut<BoardSize>,
 ) {
-    if game_state.state == GameState::Died {
+    if game_state.state != GameState::Running {
         return;
     }
     let forward = query.single().1.local_x();
@@ -560,18 +561,16 @@ fn update_time(
     time_counter.score += time.delta().as_secs_f32();
     score.score += time.delta().as_secs_f32();
     score_display.single_mut().sections[0].value = format!("Score: {}", score.score);
-    time_display.single_mut().0.sections[0].value = format!("Time: {}", time_counter.score);
+    time_display.single_mut().0.sections[0].value = format!("Time:  {}", time_counter.score);
 }
 
 fn show_score(mut commands: Commands, score: Res<Score>, asset_server: Res<AssetServer>) {
     commands
         .spawn(NodeBundle {
             style: Style {
-                size: Size {
-                    width: Val::Auto,
-                    height: Val::Px(60.),
-                },
-                justify_content: JustifyContent::Center,
+                max_size: Size::UNDEFINED,
+                flex_grow: 1.0,
+                justify_content: JustifyContent::FlexStart,
                 flex_direction: FlexDirection::Column,
                 ..default()
             },
@@ -588,42 +587,62 @@ fn show_score(mut commands: Commands, score: Res<Score>, asset_server: Res<Asset
                         font: asset_server
                             .load("JetBrains Mono Medium Nerd Font Complete Mono.ttf"),
                     },
-                ),
-            ));
-        });
-}
-
-fn show_time(mut commands: Commands, score: Res<Score>, asset_server: Res<AssetServer>) {
-    commands
-        .spawn(NodeBundle {
-            style: Style {
-                size: Size {
-                    width: Val::Auto,
-                    height: Val::Px(60.),
-                },
-                justify_content: JustifyContent::Center,
-                position: UiRect {
-                    top: Val::Px(80.0),
+                ).with_style(Style {
+                    flex_shrink: 0.,
+                    size: Size::new(Val::Undefined, Val::Px(20.)),
                     ..Default::default()
-                },
-                ..default()
-            },
-            ..default()
-        })
-        .with_children(|parent| {
+                }),
+            ));
             parent.spawn((
                 TimeDisplay,
                 TextBundle::from_section(
-                    format!("Time: {}", &score.score),
+                    format!("Time:  {}", &score.score),
                     TextStyle {
                         font_size: 20.0,
                         color: Color::WHITE,
                         font: asset_server
                             .load("JetBrains Mono Medium Nerd Font Complete Mono.ttf"),
                     },
-                ),
+                ).with_style(Style {
+                    flex_shrink: 0.,
+                    size: Size::new(Val::Undefined, Val::Px(20.)),
+                    ..Default::default()
+                }),
             ));
         });
+}
+
+fn show_time(mut commands: Commands, score: Res<Score>, asset_server: Res<AssetServer>) {
+    // commands
+    //     .spawn(NodeBundle {
+    //         style: Style {
+    //             size: Size {
+    //                 width: Val::Auto,
+    //                 height: Val::Px(60.),
+    //             },
+    //             justify_content: JustifyContent::Center,
+    //             position: UiRect {
+    //                 top: Val::Px(80.0),
+    //                 ..Default::default()
+    //             },
+    //             ..default()
+    //         },
+    //         ..default()
+    //     })
+    //     .with_children(|parent| {
+    //         parent.spawn((
+    //             TimeDisplay,
+    //             TextBundle::from_section(
+    //                 format!("Time: {}", &score.score),
+    //                 TextStyle {
+    //                     font_size: 20.0,
+    //                     color: Color::WHITE,
+    //                     font: asset_server
+    //                         .load("JetBrains Mono Medium Nerd Font Complete Mono.ttf"),
+    //                 },
+    //             ),
+    //         ));
+    //     });
 }
 
 #[derive(Resource)]
