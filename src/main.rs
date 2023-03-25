@@ -13,7 +13,7 @@ use bevy_rapier2d::prelude::*;
 mod spawn_asteroids;
 mod spawn_doublers;
 use rand::prelude::*;
-use spawn_asteroids::{AsteroidQueue, SpriteClone};
+use spawn_asteroids::{AsteroidQueue, SpriteClone, FactoryParent};
 use spawn_asteroids::{Factory, SpriteCopy};
 use spawn_doublers::{EnemyHelth, TowerQueue, TowerTimer};
 
@@ -221,7 +221,6 @@ fn fix_volume(
         sum_health += enemy.health as u16;
     }
     let mut tention = 0;
-    dbg!(&sum_health);
     if (5..10).contains(&sum_health) {
         tention = 1;
     } else if (10..20).contains(&sum_health) {
@@ -232,7 +231,6 @@ fn fix_volume(
         tention = 4;
     }
 
-    dbg!(&tention);
 
     audio_1
         .set_volume(0.0)
@@ -716,6 +714,7 @@ fn reset(
     keys: Res<Input<KeyCode>>,
     mut score: ResMut<Score>,
     mut time_counter: ResMut<TimeCounter>,
+    mut factory_transform: Query<&mut Transform, With<FactoryParent>>
 ) {
     if !keys.just_pressed(KeyCode::R) {
         return;
@@ -736,9 +735,11 @@ fn reset(
     asteroid_queuer.tripple = Timer::from_seconds(20., TimerMode::Once);
     asteroid_queuer.iteration = 0;
 
+
     score.score = 0.0;
     time_counter.score = 0.0;
 
     board_size.size = 800.0;
+    factory_transform.single_mut().translation = Vec3{x: 10., y: 10., z: 0.0};
     game_state.state = GameState::Running;
 }

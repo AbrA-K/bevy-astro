@@ -32,6 +32,9 @@ pub struct AsteroidQueue {
 #[derive(Component)]
 pub struct Factory(pub Timer);
 
+#[derive(Component)]
+pub struct FactoryParent;
+
 pub struct SpawnTimesAsteroids;
 
 impl Plugin for SpawnTimesAsteroids {
@@ -150,6 +153,7 @@ fn build_factory(
                 transform: Transform::from_xyz(10., 10., 0.),
                 ..Default::default()
             },
+            FactoryParent,
             AnimationTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
         ))
         .push_children(&astroid_copies);
