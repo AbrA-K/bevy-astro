@@ -13,7 +13,7 @@ use bevy_rapier2d::prelude::*;
 mod spawn_asteroids;
 mod spawn_doublers;
 use rand::prelude::*;
-use spawn_asteroids::{AsteroidQueue, SpriteClone, FactoryParent};
+use spawn_asteroids::{AsteroidQueue, FactoryParent, SpriteClone};
 use spawn_asteroids::{Factory, SpriteCopy};
 use spawn_doublers::{EnemyHelth, TowerQueue, TowerTimer};
 
@@ -27,6 +27,9 @@ struct Poller(Timer);
 
 #[derive(Component)]
 pub struct Shot;
+
+#[derive(Component)]
+struct DeathScreenUi;
 
 #[derive(Component)]
 struct DebugRec;
@@ -125,7 +128,8 @@ fn main() {
         .add_startup_system(spawn_player)
         .add_startup_system(setup_audio)
         .add_startup_system(show_score)
-        .add_startup_system(show_time)
+        .add_system(end_screen)
+        .add_system(check_win_condition)
         .add_system(fix_volume)
         .add_system(update_time)
         .add_system(reset)
@@ -232,7 +236,6 @@ fn fix_volume(
     } else if (30..).contains(&sum_health) {
         tention = 4;
     }
-
 
     audio_1
         .set_volume(0.0)
@@ -587,7 +590,8 @@ fn show_score(mut commands: Commands, score: Res<Score>, asset_server: Res<Asset
                         font: asset_server
                             .load("JetBrains Mono Medium Nerd Font Complete Mono.ttf"),
                     },
-                ).with_style(Style {
+                )
+                .with_style(Style {
                     flex_shrink: 0.,
                     size: Size::new(Val::Undefined, Val::Px(20.)),
                     ..Default::default()
@@ -603,7 +607,8 @@ fn show_score(mut commands: Commands, score: Res<Score>, asset_server: Res<Asset
                         font: asset_server
                             .load("JetBrains Mono Medium Nerd Font Complete Mono.ttf"),
                     },
-                ).with_style(Style {
+                )
+                .with_style(Style {
                     flex_shrink: 0.,
                     size: Size::new(Val::Undefined, Val::Px(20.)),
                     ..Default::default()
@@ -612,37 +617,63 @@ fn show_score(mut commands: Commands, score: Res<Score>, asset_server: Res<Asset
         });
 }
 
-fn show_time(mut commands: Commands, score: Res<Score>, asset_server: Res<AssetServer>) {
-    // commands
-    //     .spawn(NodeBundle {
-    //         style: Style {
-    //             size: Size {
-    //                 width: Val::Auto,
-    //                 height: Val::Px(60.),
-    //             },
-    //             justify_content: JustifyContent::Center,
-    //             position: UiRect {
-    //                 top: Val::Px(80.0),
-    //                 ..Default::default()
-    //             },
-    //             ..default()
-    //         },
-    //         ..default()
-    //     })
-    //     .with_children(|parent| {
-    //         parent.spawn((
-    //             TimeDisplay,
-    //             TextBundle::from_section(
-    //                 format!("Time: {}", &score.score),
-    //                 TextStyle {
-    //                     font_size: 20.0,
-    //                     color: Color::WHITE,
-    //                     font: asset_server
-    //                         .load("JetBrains Mono Medium Nerd Font Complete Mono.ttf"),
-    //                 },
-    //             ),
-    //         ));
-    //     });
+fn end_screen(
+    mut commands: Commands,
+    score: Res<Score>,
+    end_screen: Query<Entity, With<DeathScreenUi>>,
+    asset_server: Res<AssetServer>,
+    game_state: Res<CurrentGame>,
+) {
+    if !game_state.is_changed() {
+        return;
+    }
+
+    let mut title = "";
+    match game_state.state {
+        GameState::Died => {
+            title = "nah you bad. r to restart";
+        }
+        GameState::Won => title = "gg",
+        _ => {
+            println!("nothing to do");
+            if let Ok(ui) = end_screen.get_single() {
+                commands.entity(ui).despawn_recursive();
+            }
+            return;
+        }
+    }
+
+    if let Ok(_) = end_screen.get_single() {
+        // don't do a thing if it exists
+        return;
+    }
+
+    commands
+        .spawn((
+            NodeBundle {
+                style: Style {
+                    size: Size {
+                        width: Val::Auto,
+                        height: Val::Px(60.),
+                    },
+                    justify_content: JustifyContent::Center,
+                    position_type: PositionType::Absolute,
+                    ..default()
+                },
+                ..default()
+            },
+            DeathScreenUi,
+        ))
+        .with_children(|parent| {
+            parent.spawn((TextBundle::from_section(
+                format!("{title}, Score: {}", &score.score),
+                TextStyle {
+                    font_size: 70.0,
+                    color: Color::WHITE,
+                    font: asset_server.load("JetBrains Mono Medium Nerd Font Complete Mono.ttf"),
+                },
+            ),));
+        });
 }
 
 #[derive(Resource)]
@@ -734,7 +765,7 @@ fn reset(
     keys: Res<Input<KeyCode>>,
     mut score: ResMut<Score>,
     mut time_counter: ResMut<TimeCounter>,
-    mut factory_transform: Query<&mut Transform, With<FactoryParent>>
+    mut factory_transform: Query<&mut Transform, With<FactoryParent>>,
 ) {
     if !keys.just_pressed(KeyCode::R) {
         return;
@@ -755,11 +786,20 @@ fn reset(
     asteroid_queuer.tripple = Timer::from_seconds(20., TimerMode::Once);
     asteroid_queuer.iteration = 0;
 
-
     score.score = 0.0;
     time_counter.score = 0.0;
 
     board_size.size = 800.0;
-    factory_transform.single_mut().translation = Vec3{x: 10., y: 10., z: 0.0};
+    factory_transform.single_mut().translation = Vec3 {
+        x: 10.,
+        y: 10.,
+        z: 0.0,
+    };
     game_state.state = GameState::Running;
+}
+
+fn check_win_condition(mut game_state: ResMut<CurrentGame>, time_counter: Res<TimeCounter>) {
+    if time_counter.score > 100.0 {
+        game_state.state = GameState::Won;
+    }
 }
