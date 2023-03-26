@@ -355,7 +355,7 @@ fn spawn_one_doubler(
 }
 
 fn time_and_adjust_board(
-    mut timers: Query<&mut TowerField, Without<SpriteCopy>>,
+    mut timers: Query<(&mut TowerField, Without<SpriteCopy>, Without<Projectile>)>,
     time: Res<Time>,
     mut board_size: ResMut<BoardSize>,
     mut score: ResMut<Score>,
@@ -365,9 +365,9 @@ fn time_and_adjust_board(
     let mut sum_tower_size = 0.0;
 
     for mut timer in timers.iter_mut() {
-        timer.timer.tick(time.delta());
+        timer.0.timer.tick(time.delta());
         score.score += time.delta().as_secs_f32() / 2.0;
-        sum_tower_size += timer.timer.elapsed().as_secs_f32();
+        sum_tower_size += timer.0.timer.elapsed().as_secs_f32()*1.5;
     }
 
     let next_size: f32 = original_size - sum_tower_size;
